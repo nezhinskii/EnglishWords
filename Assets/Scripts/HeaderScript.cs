@@ -6,6 +6,7 @@ using UnityEngine.UI;
 
 public class HeaderScript : MonoBehaviour
 {
+    public DataScript data;
     Button lBut, rBut;
     int curInd;
     void Start()
@@ -49,6 +50,10 @@ public class HeaderScript : MonoBehaviour
             UnityEditor.EditorApplication.isPlaying = false;
 #endif
         }
+    }
+
+    public void OnDestroy() {
+        data.SavePrefs(); //TODO ???
     }
 
 }

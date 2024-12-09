@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using UnityEngine.UI;
+using System.Text.RegularExpressions;
 
 [CreateAssetMenu(fileName = "GameData", menuName = "Game Data", order = 51)]
 public class DataScript : ScriptableObject
@@ -15,6 +16,13 @@ public class DataScript : ScriptableObject
 
     [SerializeField] int[] itemIndex = new int[8];
     [SerializeField] float[] scrollbarValue = new float[8] { 1, 1, 1, 1, 1, 1, 1, 1 };
+
+    public bool OptAudioEnRu;
+    public int OptTopicName;
+    public int OptVolume = 10;
+
+    public Button mainButton;
+
     public int S1ItemIndex
     {
         get => itemIndex[level];
@@ -36,6 +44,28 @@ public class DataScript : ScriptableObject
         get => scrollbarValue[level + 4];
         set => scrollbarValue[level + 4] = value;
     }
+
+
+    public int OptMainButtonFontSize
+    {
+        get => mainButton.GetComponentInChildren<Text>().fontSize;
+        set => mainButton.GetComponentInChildren<Text>().fontSize = value;
+    }
+    public int GetHeight(Component comp) =>
+    (int)comp.GetComponent<RectTransform>().sizeDelta.y;
+    public void SetHeight(Component comp, int value)
+    {
+        RectTransform rt = comp.GetComponent<RectTransform>();
+        Vector2 sd = rt.sizeDelta;
+        sd.y = value;
+        rt.sizeDelta = sd;
+    }
+    public int OptMainButtonHeight
+    {
+        get => GetHeight(mainButton);
+        set => SetHeight(mainButton, value);
+    }
+
 
     public int TestType;
     [SerializeField] string[] testTopics = new string[4] { "1", "1", "1", "1" };
@@ -66,7 +96,15 @@ public class DataScript : ScriptableObject
     void Awake()
     {
         data = new List<string>(Resources.LoadAll<TextAsset>("Data").Select(e => e.name));
+        LoadPrefabs();
+        LoadPrefs();
         SetLevel(level);
+    }
+
+    void LoadPrefabs()
+    {
+        mainButton = Resources.Load<GameObject>("Prefabs/MainButton")
+        .GetComponent<Button>();
     }
     public int Level { get => level; }
     public void SetLevel(int newLevel)
@@ -76,7 +114,14 @@ public class DataScript : ScriptableObject
     }
 
     public int TopicCount { get => topics.Count; }
-    public string Topic(int i) => topics[i].Remove(0, 2);
+    public string Topic(int i)
+    {
+        string s = topics[i].Remove(0, 2);
+        if (OptTopicName == 0 || level == 3)
+            return s;
+        var m = Regex.Match(s, @"(\d\d\.)(.*) \((.*)\)");
+        return m.Groups[1].Value + m.Groups[OptTopicName + 1].Value;
+    }
 
     public void GetWords(int topicIndex, bool reset = true)
     {
@@ -98,6 +143,7 @@ public class DataScript : ScriptableObject
         var audio = Camera.main.GetComponent<AudioSource>();
         audio.clip = Resources.Load<AudioClip>("Sounds/"
         + words[wordIndex].Au);
+        audio.volume = OptVolume / 10.0f;
         audio.Play();
     }
 
@@ -170,7 +216,7 @@ public class DataScript : ScriptableObject
         else
         {
             labels[0] = TestType == 0 ? words[testInd[0]].En : "[Audio]";
-            if (TestType == 2)
+            if (TestType == 2 || OptAudioEnRu)
                 PlayAudio(testInd[0]);
             for (int i = 1; i < 6; i++)
                 labels[i] = words[testInd[i]].Ru;
@@ -208,6 +254,49 @@ public class DataScript : ScriptableObject
     {
         if (test.Mark > 2)
             results.Add(test);
+    }
+
+    public void SavePrefs()
+    {
+        PlayerPrefs.SetInt("Level", level);
+        PlayerPrefs.SetInt("TestType", TestType);
+        for (int i = 0; i < 8; i++)
+        {
+            PlayerPrefs.SetInt($"ItemIndex{i}", itemIndex[i]);
+            PlayerPrefs.SetFloat($"ScrollbarValue{i}", scrollbarValue[i]);
+        }
+        for (int i = 0; i < 4; i++)
+            PlayerPrefs.SetString($"TestTopics{i}", testTopics[i]);
+        PlayerPrefs.SetInt("OptAudioEnRu", OptAudioEnRu ? 1 : 0);
+        PlayerPrefs.SetInt("OptTopicName", OptTopicName);
+        PlayerPrefs.SetInt("OptVolume", OptVolume);
+        PlayerPrefs.SetInt("OptMainButtonFontSize", OptMainButtonFontSize);
+        PlayerPrefs.SetInt("OptMainButtonHeight", OptMainButtonHeight);
+        PlayerPrefs.SetInt("ResultsCount", results.Count);
+        for (int i = 0; i < results.Count; i++)
+            PlayerPrefs.SetString($"Results{i}", results[i].ToString());
+    }
+
+    void LoadPrefs()
+    {
+        level = PlayerPrefs.GetInt("Level", 0);
+        TestType = PlayerPrefs.GetInt("TestType", 0);
+        for (int i = 0; i < 8; i++)
+        {
+            itemIndex[i] = PlayerPrefs.GetInt($"ItemIndex{i}", 0);
+            scrollbarValue[i] = PlayerPrefs.GetFloat($"ScrollbarValue{i}", 0);
+        }
+        for (int i = 0; i < 4; i++)
+            testTopics[i] = PlayerPrefs.GetString($"TestTopics{i}", "1");
+        OptAudioEnRu = PlayerPrefs.GetInt("OptAudioEnRu", 0) == 1;
+        OptTopicName = PlayerPrefs.GetInt("OptTopicName", 0);
+        OptVolume = PlayerPrefs.GetInt("OptVolume", 10);
+        OptMainButtonFontSize = PlayerPrefs.GetInt("OptMainButtonFontSize", 10);
+        OptMainButtonHeight = PlayerPrefs.GetInt("OptMainButtonHeight", 25);
+        results.Clear();
+        var cnt = PlayerPrefs.GetInt("ResultsCount", 0);
+        for (int i = 0; i < cnt; i++)
+            results.Add(new TestInfo(PlayerPrefs.GetString($"Results{i}", "")));
     }
 }
 
