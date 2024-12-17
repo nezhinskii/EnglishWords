@@ -167,7 +167,7 @@ public class DataScript : ScriptableObject
         ppredInd = -1;
     }
 
-    string getTitle() => $"������ {test.Answers + 1} �� {test.Questions}\n�������: {test.Rating * 100:f2}";
+    string getTitle() => $"������ {test.Answers + 1} �� {test.Questions}\n�������: {test.Rating * 100:f2}";
 
     float getProgress() => (float)test.Answers / test.Questions;
 
@@ -175,7 +175,7 @@ public class DataScript : ScriptableObject
     {
         if (test.Answers == test.Questions)
         {
-            title = $"�������� �������: {test.Rating * 100:f2}\n������: {test.Mark}";
+            title = $"�������� �������: {test.Rating * 100:f2}\n������: {test.Mark}";
             progress = 1;
             return false;
         }
@@ -298,6 +298,39 @@ public class DataScript : ScriptableObject
         for (int i = 0; i < cnt; i++)
             results.Add(new TestInfo(PlayerPrefs.GetString($"Results{i}", "")));
     }
+    public int ResultCount { get => results.Count; }
+    public string TestTypeToString(int testType)
+    {
+        switch (testType)
+        {
+            case 0:
+                return "En-Ru";
+            case 1:
+                return "Ru-En";
+            default:
+                return "Au-Ru";
+        }
+    }
+    public string Result(int i)
+    {
+        var r = results[i];
+        return $"{r.StartTime} {r.Level + 1}:{r.Topics} "
+        + $"{TestTypeToString(r.Type)} {r.Rating * 100:f0}\u00A0[{r.Mark}]";
+    }
+    public string CompleteResultInfo(int i)
+    {
+        var r = results[i];
+        return $@"Начало тестирования:
+{r.StartTime}
+Вид тестирования: {TestTypeToString(r.Type)}
+Уровень и темы: {r.Level + 1}:{r.Topics}
+Количество слов: {r.WordCount}
+Вопросов в тесте: {r.Questions}
+Правильных ответов: {r.Answers}
+Ошибочных ответов: {r.Errors}
+Рейтинг и оценка: {r.Rating * 100:f1} [{r.Mark}]";
+    }
+
 }
 
 [System.Serializable]
